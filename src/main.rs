@@ -40,9 +40,7 @@ async fn main() {
             .branch(
                 dptree::entry()
                     .branch(dptree::case![State::Start].endpoint(dialogue::start))
-                    .branch(
-                        dptree::case![State::RssList { messages }].endpoint(dialogue::rss_list),
-                    ),
+                    .branch(dptree::case![State::RssList(subs)].endpoint(dialogue::rss_list)),
             ),
     )
     .dependencies(dptree::deps![storage])
