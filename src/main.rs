@@ -12,6 +12,7 @@ use crate::dialogue::State;
 
 mod commands;
 mod dialogue;
+mod validate;
 
 #[tokio::main]
 async fn main() {

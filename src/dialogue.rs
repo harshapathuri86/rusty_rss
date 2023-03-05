@@ -9,6 +9,8 @@ use crate::common_types::{get_user, HandlerResult, Subscription};
 pub type BotDialogue = Dialogue<State, ErasedStorage<State>>;
 pub type DialogueStorage = std::sync::Arc<ErasedStorage<State>>;
 
+use crate::validate;
+
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 
 pub enum State {
@@ -53,18 +55,42 @@ pub async fn rss_list(
     };
 
     info!("Received message from {}: '{}'", get_user(&msg), user_text);
-
+    
+    let new_subscription: Subscription;
     let url = user_text.trim();
+    match validate::parse_feed(url).await {
+        Ok(feed_source) => {
+            match feed_source {
+                validate::Feed::Atom(feed) => {
+                    new_subscription = Subscription::new(url, &feed.title());
+                } 
+                validate::Feed::RSS(channel) => {
+                    new_subscription = Subscription::new(url, &channel.title());
+                },
+            }
+        }
+        Err(_) => {
+            // bot.send_message(msg.chat.id, format!("Error validating given url:{}", e ))
+            bot.send_message(msg.chat.id, format!("This does not look like a valid Atom/RSS feed.\nTry something like https://xkcd.com/rss.xml"))
+            .await?;
+            return Ok(());
+        },
+    }
 
-    subs_list.push(Subscription::new(url.to_owned()));
+    let title = new_subscription.title.to_string();
+
+    subs_list.push(new_subscription);
 
     info!("Subscribed user: {} to {}", get_user(&msg), url);
 
-    let next_message = format!("Added {} to the list of subscriptions", url);
+    let mut message = "Subscribed to ".to_owned();
+    message.push_str(&teloxide::utils::markdown::link(url,&title));
 
-    info!("Replied to {}: '{}'", get_user(&msg), next_message);
+    bot.send_message(msg.chat.id,message).await?;
 
-    bot.send_message(msg.chat.id, next_message).await?;
+    info!("Replied to {}: '{}'", get_user(&msg), format!("Subscribed to {}", url));
+
+
     dialogue.update(State::RssList(subs_list)).await?;
     Ok(())
 }

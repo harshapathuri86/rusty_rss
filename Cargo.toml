@@ -14,3 +14,6 @@ serde = { version = "1.0", features = ["derive"] }
 dotenv = "0.15.0"
 chrono = { version = "0.4.23", features = ["serde"] }
 regex = "1.7.1"
+rss = "2.0.2"
+atom_syndication = "0.12.0"
+reqwest = "0.11.14"
